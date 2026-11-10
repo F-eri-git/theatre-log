@@ -1,0 +1,49 @@
+/* App-shell additions on top of tokens.css / components.css.
+   Every color/space/radius value below is a var() from tokens.css —
+   no hex is introduced here, per the design handoff's rule. */
+
+html, body, #app { height: 100%; }
+body { overscroll-behavior-y: none; }
+
+#app { position: relative; min-height: 100dvh; background: var(--paper); }
+
+/* — list screen header row (title + theatre-master entry point) — */
+.tl-title-row { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-3); }
+.tl-icon-btn { display: inline-flex; align-items: center; justify-content: center; width: var(--tap-min); height: var(--tap-min); margin-right: calc(var(--space-2) * -1); border: 0; background: transparent; color: var(--ink-muted); border-radius: var(--radius-pill); cursor: pointer; }
+.tl-icon-btn:active { background: var(--surface-sunk); }
+
+/* — tappable card (button, not anchor, since this is a single-page app) — */
+.tl-card-btn { display: block; width: 100%; text-align: left; border: 0; padding: 0; background: transparent; font: inherit; color: inherit; cursor: pointer; }
+.tl-card-btn .tl-card { width: 100%; }
+
+/* — empty state — */
+.tl-empty { display: flex; flex-direction: column; align-items: center; gap: var(--space-4); padding: var(--space-7) var(--space-4); text-align: center; color: var(--ink-muted); }
+.tl-empty p { margin: 0; font: 400 14px/20px var(--font-sans); }
+
+/* — full-screen overlay (record form / theatre master) — */
+.tl-overlay { position: fixed; inset: 0; z-index: 60; background: var(--paper); display: flex; flex-direction: column; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-top: env(safe-area-inset-top); }
+.tl-overlay .tl-navbar { flex: none; background: var(--paper); position: sticky; top: 0; z-index: 1; }
+.tl-overlay__body { flex: 1; padding-bottom: calc(var(--space-7) + env(safe-area-inset-bottom)); }
+
+/* — validation error text — */
+.tl-field__error { font: 500 12px/16px var(--font-sans); color: var(--claret); }
+.tl-input.has-error { border-color: var(--claret); }
+
+/* — theatre master list rows — */
+.tl-theatre-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-3) 0; border-bottom: 1px solid var(--line); }
+.tl-theatre-row:last-child { border-bottom: 0; }
+.tl-theatre-row__main { display: flex; flex-direction: column; gap: 2px; min-width: 0; text-align: left; background: transparent; border: 0; padding: 0; font: inherit; color: inherit; cursor: pointer; flex: 1; }
+.tl-theatre-row__name { font: 600 15px/20px var(--font-sans); color: var(--ink); }
+.tl-theatre-row__meta { font: 400 12px/16px var(--font-sans); color: var(--ink-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* — bottom confirm sheet (delete record / theatre) — */
+.tl-sheet-backdrop { position: fixed; inset: 0; z-index: 70; display: flex; align-items: flex-end; justify-content: center; background: color-mix(in srgb, var(--ink) 45%, transparent); }
+.tl-sheet { width: 100%; box-sizing: border-box; padding: var(--space-5) var(--space-4) calc(var(--space-5) + env(safe-area-inset-bottom)); background: var(--surface); border-radius: var(--radius-lg) var(--radius-lg) 0 0; box-shadow: var(--shadow-sheet); display: flex; flex-direction: column; gap: var(--space-4); }
+.tl-sheet p { margin: 0; font: 600 16px/22px var(--font-sans); color: var(--ink); }
+.tl-sheet-actions { display: flex; flex-direction: column; gap: var(--space-2); }
+
+/* — toast (e.g. share sheet cancelled) — */
+.tl-toast { position: fixed; left: var(--space-4); right: var(--space-4); bottom: calc(var(--tabbar-height) + env(safe-area-inset-bottom) + var(--space-3)); z-index: 80; background: var(--ink); color: var(--paper); padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); font: 500 13px/18px var(--font-sans); text-align: center; box-shadow: var(--shadow-sheet); }
+
+/* — add-theatre affordance inside the venue field — */
+.tl-field__hint-btn { background: transparent; border: 0; padding: 0; color: var(--claret); font: 500 12px/16px var(--font-sans); text-decoration: underline; cursor: pointer; }

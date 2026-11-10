@@ -1,0 +1,85 @@
+/* Theatre Log — design tokens (generated from tokens.json). Light is the default; dark follows the OS, or force with <html data-theme="dark">. */
+
+:root, [data-theme="light"] {
+  --paper: #f7f3ec;
+  --surface: #fffdf9;
+  --surface-sunk: #efe9df;
+  --ink: #1c1719;
+  --ink-muted: #5e5458;
+  --line: #ddd4c7;
+  --line-strong: #8f8478;
+  --claret: #8a1c2b;
+  --claret-soft: #f3e3e3;
+  --on-claret: #ffffff;
+  --gold: #a8741a;
+  --gold-soft: #f4e7cc;
+  --slate: #2e4a6b;
+  --slate-soft: #e3eaf2;
+  --focus: var(--claret);
+  --shadow-sheet: 0 -8px 24px rgba(28, 23, 25, 0.10);
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #141113;
+    --surface: #1e1a1c;
+    --surface-sunk: #0e0c0d;
+    --ink: #f2ece4;
+    --ink-muted: #b3a9a2;
+    --line: #3a3336;
+    --line-strong: #7d7270;
+    --claret: #e07a86;
+    --claret-soft: #3a2025;
+    --on-claret: #1c1012;
+    --gold: #e0b054;
+    --gold-soft: #3a2f1a;
+    --slate: #9db8d9;
+    --slate-soft: #1f2a37;
+    --shadow-sheet: 0 -8px 24px rgba(0, 0, 0, 0.5);
+    color-scheme: dark;
+  }
+}
+
+[data-theme="dark"] {
+  --paper: #141113;
+  --surface: #1e1a1c;
+  --surface-sunk: #0e0c0d;
+  --ink: #f2ece4;
+  --ink-muted: #b3a9a2;
+  --line: #3a3336;
+  --line-strong: #7d7270;
+  --claret: #e07a86;
+  --claret-soft: #3a2025;
+  --on-claret: #1c1012;
+  --gold: #e0b054;
+  --gold-soft: #3a2f1a;
+  --slate: #9db8d9;
+  --slate-soft: #1f2a37;
+  --shadow-sheet: 0 -8px 24px rgba(0, 0, 0, 0.5);
+  color-scheme: dark;
+}
+
+:root {
+  --font-display: "Shippori Mincho", "Hiragino Mincho ProN", "Yu Mincho", serif;
+  --font-sans: "Noto Sans JP", -apple-system, "Hiragino Sans", system-ui, sans-serif;
+  --font-mono: "DM Mono", ui-monospace, "SF Mono", monospace;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-pill: 999px;
+  --notch: 8px;
+
+  --tap-min: 44px;
+  --tabbar-height: 56px;
+  --stub-width: 68px;
+}
