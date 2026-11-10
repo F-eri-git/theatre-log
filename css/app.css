@@ -47,3 +47,9 @@ body { overscroll-behavior-y: none; }
 
 /* — add-theatre affordance inside the venue field — */
 .tl-field__hint-btn { background: transparent; border: 0; padding: 0; color: var(--claret); font: 500 12px/16px var(--font-sans); text-decoration: underline; cursor: pointer; }
+
+/* iOS Safari gives date inputs an intrinsic min width that ignores width:100%,
+   which pushes them past their box. Reset it so they stay inside the field. */
+.tl-input[type="date"] { -webkit-appearance: none; appearance: none; display: block; min-width: 0; text-align: left; }
+.tl-input[type="date"]::-webkit-date-and-time-value { text-align: left; }
+.tl-field, .tl-field-pair > * { min-width: 0; }

@@ -334,16 +334,10 @@
             ${ov.errors.title ? `<span class="tl-field__error">${ov.errors.title}</span>` : ''}
           </div>
 
-          <div class="tl-field-pair" style="grid-template-columns:1.4fr 1fr">
-            <div class="tl-field">
-              <label class="tl-field__label" for="f-date">観劇日 <b>必須</b></label>
-              <input class="tl-input ${ov.errors.date ? 'has-error' : ''}" id="f-date" type="date" value="${f.date}" data-action="update-date">
-              ${ov.errors.date ? `<span class="tl-field__error">${ov.errors.date}</span>` : ''}
-            </div>
-            <div class="tl-field">
-              <label class="tl-field__label" for="f-time">開演</label>
-              <input class="tl-input" id="f-time" type="time" value="${f.time}" style="font-family:var(--font-mono)" data-action="update-time">
-            </div>
+          <div class="tl-field">
+            <label class="tl-field__label" for="f-date">観劇日 <b>必須</b></label>
+            <input class="tl-input ${ov.errors.date ? 'has-error' : ''}" id="f-date" type="date" value="${f.date}" data-action="update-date">
+            ${ov.errors.date ? `<span class="tl-field__error">${ov.errors.date}</span>` : ''}
           </div>
 
           <div class="tl-field">
@@ -749,7 +743,6 @@
           break;
         }
         case 'update-date': ov.form.date = el.value; delete ov.errors.date; break;
-        case 'update-time': ov.form.time = el.value; break;
         case 'update-venue': {
           ov.form.venueText = el.value; delete ov.errors.venue;
           const hintEl = document.getElementById('venue-hint');
