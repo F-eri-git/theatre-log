@@ -36,7 +36,7 @@
     theatres: [],
     ui: {
       tab: 'list',           // 'list' | 'export'
-      listFilter: 'all',     // 'planned' | 'seen' | 'all'
+      listFilter: loadFilter(), // 'planned' | 'seen' | 'all' (remembered across launches)
       recordOverlay: null,   // { id, form, errors }
       theatreOverlay: null,  // { mode: 'list'|'form', editId, form, errors }
       confirm: null,         // { kind: 'delete-record'|'delete-theatre', id }
@@ -44,6 +44,16 @@
     },
   };
   let toastTimer = null;
+
+  function loadFilter() {
+    try {
+      const v = localStorage.getItem('tl-list-filter');
+      return ['planned', 'seen', 'all'].includes(v) ? v : 'all';
+    } catch (e) { return 'all'; }
+  }
+  function saveFilter(v) {
+    try { localStorage.setItem('tl-list-filter', v); } catch (e) { /* storage unavailable: keep in memory only */ }
+  }
 
   // ---- lookups ----
   function theatreById(id) { return state.theatres.find(t => t.id === id) || null; }
@@ -178,7 +188,7 @@
       if (r.rating > 0) {
         foot = `<div class="tl-card__foot">${starRow(r.rating, 'sm')}</div>`;
       } else {
-        foot = `<div class="tl-card__foot"><span class="tl-btn tl-btn--danger tl-card__cta">評価する</span></div>`;
+        foot = `<div class="tl-card__foot"><span class="tl-btn tl-btn--danger tl-card__cta" data-action="rate-record" data-id="${r.id}">評価する</span></div>`;
       }
     }
     const note = (r.comment && r.displayStatus !== 'planned') ? `<p class="tl-card__note">${escapeHtml(r.comment)}</p>` : '';
@@ -658,6 +668,12 @@
       case 'tab-export': state.ui.tab = 'export'; render(); break;
       case 'new-record': openRecordOverlay(null); break;
       case 'open-record': openRecordOverlay(target.dataset.id); break;
+      case 'rate-record': {
+        openRecordOverlay(target.dataset.id);
+        const box = document.querySelector('.tl-rating-box');
+        if (box) box.scrollIntoView({ block: 'center' });
+        break;
+      }
       case 'close-record-overlay': state.ui.recordOverlay = null; render(); break;
       case 'confirm-delete-record': state.ui.confirm = { kind: 'delete-record', id: target.dataset.id }; render(); break;
 
@@ -754,7 +770,7 @@
     root.addEventListener('change', (e) => {
       const el = e.target;
       const ov = state.ui.recordOverlay;
-      if (el.name === 'filter') { state.ui.listFilter = el.value; render(); }
+      if (el.name === 'filter') { state.ui.listFilter = el.value; saveFilter(el.value); render(); }
       else if (el.name === 'genre') { ov.form.genre = el.value; }
       else if (el.dataset.action === 'update-status') { ov.form.status = el.value; }
     });
@@ -767,10 +783,9 @@
     bindEvents();
     render();
 
+    // Register directly: by the time IndexedDB has loaded, window 'load' may already have fired.
     if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js').catch(err => console.error('SW registration failed', err));
-      });
+      navigator.serviceWorker.register('./sw.js').catch(err => console.error('SW registration failed', err));
     }
   }
 
