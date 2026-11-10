@@ -1,6 +1,6 @@
-// Cache-first service worker — after the first successful load, the app
-// works with zero network (all data lives in IndexedDB on-device).
-const CACHE_NAME = 'theatre-log-v1';
+// Service worker — after the first successful load, the app works offline
+// (all data lives in IndexedDB on-device).
+const CACHE_NAME = 'theatre-log-v2';
 const ASSETS = [
   './',
   './index.html',
@@ -27,18 +27,21 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+// Network-first: when online, always get the latest deployed code (and refresh
+// the cache); when offline, fall back to the cached copy.
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
+  if (new URL(event.request.url).origin !== self.location.origin) return; // e.g. Google Fonts
   event.respondWith(
-    caches.match(event.request).then(cached => {
-      if (cached) return cached;
-      return fetch(event.request)
-        .then(response => {
+    fetch(event.request)
+      .then(response => {
+        if (response.ok) {
           const copy = response.clone();
           caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
-          return response;
-        })
-        .catch(() => (event.request.mode === 'navigate' ? caches.match('./index.html') : undefined));
-    })
+        }
+        return response;
+      })
+      .catch(() => caches.match(event.request)
+        .then(cached => cached || (event.request.mode === 'navigate' ? caches.match('./index.html') : undefined)))
   );
 });
