@@ -233,7 +233,7 @@
       <main class="tl-screen">
         <div class="tl-screen__body">
           <div class="tl-title-row">
-            <h1 class="tl-screen-title">観劇ログ</h1>
+            <h1 class="tl-screen-title">Theatre Log</h1>
             <button type="button" class="tl-icon-btn" data-action="open-theatre-overlay" aria-label="劇場を管理">${ICON_THEATRE}</button>
           </div>
           <fieldset class="tl-seg" style="display:flex">
