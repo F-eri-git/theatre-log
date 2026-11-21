@@ -91,7 +91,8 @@
     if (!match) return '新しい劇場として登録されます';
     const addr = `住所：${escapeHtml(match.address || '（未登録）')}`;
     const link = match.seatingPlanLink ? ` ・ <a href="${escapeHtml(match.seatingPlanLink)}" target="_blank" rel="noopener">座席表</a>` : '';
-    return addr + link;
+    const memo = match.memo ? `<br>メモ：${escapeHtml(match.memo)}` : '';
+    return addr + link + memo;
   }
   function suggestedTimes(title, excludeId) {
     const key = (title || '').trim();
@@ -487,6 +488,10 @@
               <label class="tl-field__label" for="t-link">座席表リンク</label>
               <input class="tl-input" id="t-link" type="url" placeholder="https://" value="${escapeHtml(f.seatingPlanLink)}" data-action="update-theatre-link">
             </div>
+            <div class="tl-field">
+              <label class="tl-field__label" for="t-memo">メモ</label>
+              <textarea class="tl-input" id="t-memo" placeholder="見やすい席、設備、通信環境など" data-action="update-theatre-memo">${escapeHtml(f.memo)}</textarea>
+            </div>
             <button type="submit" class="tl-btn tl-btn--primary tl-btn--block tl-btn--lg">保存する</button>
             ${ov.editId
               ? usageCount > 0
@@ -575,7 +580,7 @@
     const name = venueText.trim();
     const existing = findTheatreByName(name);
     if (existing) return existing.id;
-    const theatre = { id: uuid(), name, address: '', seatingPlanLink: '' };
+    const theatre = { id: uuid(), name, address: '', seatingPlanLink: '', memo: '' };
     state.theatres.push(theatre);
     saveTheatre(theatre);
     return theatre.id;
@@ -640,9 +645,9 @@
     let theatre;
     if (ov.editId) {
       theatre = theatreById(ov.editId);
-      Object.assign(theatre, { name: f.name.trim(), address: f.address.trim(), seatingPlanLink: f.seatingPlanLink.trim() });
+      Object.assign(theatre, { name: f.name.trim(), address: f.address.trim(), seatingPlanLink: f.seatingPlanLink.trim(), memo: f.memo.trim() });
     } else {
-      theatre = { id: uuid(), name: f.name.trim(), address: f.address.trim(), seatingPlanLink: f.seatingPlanLink.trim() };
+      theatre = { id: uuid(), name: f.name.trim(), address: f.address.trim(), seatingPlanLink: f.seatingPlanLink.trim(), memo: f.memo.trim() };
       state.theatres.push(theatre);
     }
     saveTheatre(theatre);
@@ -797,13 +802,13 @@
       case 'open-theatre-overlay': state.ui.theatreOverlay = { mode: 'list', editId: null, form: null, errors: {} }; render(); break;
       case 'close-theatre-overlay': state.ui.theatreOverlay = null; render(); break;
       case 'new-theatre':
-        state.ui.theatreOverlay = { mode: 'form', editId: null, form: { name: '', address: '', seatingPlanLink: '' }, errors: {} };
+        state.ui.theatreOverlay = { mode: 'form', editId: null, form: { name: '', address: '', seatingPlanLink: '', memo: '' }, errors: {} };
         render();
         break;
       case 'edit-theatre': {
         const t = theatreById(target.dataset.id);
         if (!t) break;
-        state.ui.theatreOverlay = { mode: 'form', editId: t.id, form: { name: t.name, address: t.address || '', seatingPlanLink: t.seatingPlanLink || '' }, errors: {} };
+        state.ui.theatreOverlay = { mode: 'form', editId: t.id, form: { name: t.name, address: t.address || '', seatingPlanLink: t.seatingPlanLink || '', memo: t.memo || '' }, errors: {} };
         render();
         break;
       }
@@ -881,6 +886,7 @@
         case 'update-theatre-name': tov.form.name = el.value; delete tov.errors.name; break;
         case 'update-theatre-address': tov.form.address = el.value; break;
         case 'update-theatre-link': tov.form.seatingPlanLink = el.value; break;
+        case 'update-theatre-memo': tov.form.memo = el.value; break;
       }
     });
 
