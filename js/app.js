@@ -34,12 +34,13 @@
   const state = {
     records: [],
     theatres: [],
+    storagePersisted: false,
     ui: {
       tab: 'list',           // 'list' | 'export'
       listFilter: loadFilter(), // 'planned' | 'seen' | 'all' (remembered across launches)
       recordOverlay: null,   // { id, form, errors }
       theatreOverlay: null,  // { mode: 'list'|'form', editId, form, errors }
-      confirm: null,         // { kind: 'delete-record'|'delete-theatre', id }
+      confirm: null,         // { kind: 'delete-record'|'delete-theatre', id } | { kind: 'restore', data }
       toast: '',
     },
   };
@@ -53,6 +54,24 @@
   }
   function saveFilter(v) {
     try { localStorage.setItem('tl-list-filter', v); } catch (e) { /* storage unavailable: keep in memory only */ }
+  }
+
+  // ---- backup bookkeeping ----
+  const BACKUP_REMIND_DAYS = 7;
+  function readLS(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
+  function writeLS(key, v) { try { localStorage.setItem(key, v); } catch (e) { /* ignore */ } }
+  function backupStatus() {
+    const last = readLS('tl-last-backup');
+    const change = readLS('tl-last-change');
+    const hasData = state.records.length > 0 || state.theatres.length > 0;
+    const dirty = hasData && (!last || (change && change > last));
+    const days = last ? Math.floor((Date.now() - new Date(last).getTime()) / 86400000) : null;
+    const remind = dirty && (days === null || days >= BACKUP_REMIND_DAYS);
+    return { last, days, dirty, remind };
+  }
+  function formatBackupDate(iso) {
+    const d = new Date(iso);
+    return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
   }
 
   // ---- lookups ----
@@ -209,6 +228,17 @@
     `;
   }
 
+  function renderBackupReminder() {
+    const b = backupStatus();
+    if (!b.remind) return '';
+    const msg = b.last ? `最後のバックアップから${b.days}日経っています` : 'まだバックアップがありません';
+    return `
+      <button type="button" class="tl-backup-reminder" data-action="tab-export">
+        <span>${msg}</span><span class="tl-backup-reminder__cta">バックアップ ›</span>
+      </button>
+    `;
+  }
+
   function renderListScreen(view) {
     const segs = [
       { id: 'planned', label: '予定', count: view.plannedCount },
@@ -236,6 +266,7 @@
             <h1 class="tl-screen-title">Theatre Log</h1>
             <button type="button" class="tl-icon-btn" data-action="open-theatre-overlay" aria-label="劇場を管理">${ICON_THEATRE}</button>
           </div>
+          ${renderBackupReminder()}
           <fieldset class="tl-seg" style="display:flex">
             <legend class="tl-visually-hidden">表示する記録</legend>
             ${seg}
@@ -243,6 +274,24 @@
           ${body}
         </div>
       </main>
+    `;
+  }
+
+  function renderBackupSection() {
+    const b = backupStatus();
+    const lastLine = b.last
+      ? `最終バックアップ：${formatBackupDate(b.last)}${b.dirty ? '（その後に変更あり）' : '（最新）'}`
+      : 'まだバックアップがありません';
+    return `
+      <section class="tl-export" aria-labelledby="bk-title">
+        <h2 class="tl-section-title" id="bk-title" style="margin:0">バックアップ</h2>
+        <p class="tl-backup__status ${b.dirty ? 'is-dirty' : ''}">${lastLine}</p>
+        <button type="button" class="tl-btn tl-btn--primary tl-btn--block" data-action="export-backup">${ICON_EXPORT}バックアップを保存</button>
+        <button type="button" class="tl-btn tl-btn--secondary tl-btn--block" data-action="pick-restore">バックアップから復元</button>
+        <input type="file" id="restore-file" class="tl-visually-hidden" tabindex="-1" aria-hidden="true">
+        <p class="tl-export__note">予定・観劇済・劇場リストを含むすべての記録を1つのファイルに保存します。共有メニューの「ファイルに保存」から iCloud Drive に保存しておくと、機種変更やデータ消失のときに復元できます。</p>
+        <p class="tl-export__note">${state.storagePersisted ? '✓ この端末ではデータが自動削除されないよう保護されています。' : 'この端末ではデータの保護設定が確認できませんでした。定期的なバックアップをおすすめします。'}</p>
+      </section>
     `;
   }
 
@@ -262,6 +311,7 @@
             <button type="button" class="tl-btn tl-btn--primary tl-btn--block tl-btn--lg" data-action="export-csv" ${count ? '' : 'disabled'}>${ICON_EXPORT}${count ? 'CSV で書き出す' : '書き出す記録はありません'}</button>
             <p class="tl-export__note">予定の公演は含まれません。書き出した記録は「書き出し済」になり、次回の対象から外れます。</p>
           </section>
+          ${renderBackupSection()}
           <section class="tl-stack" style="gap:var(--space-2)">
             <h2 class="tl-section-title">CSV の列</h2>
             <p class="tl-field__hint" style="margin:0">観劇note の表と同じ順。先頭行は列名です</p>
@@ -476,13 +526,21 @@
   // ---- confirm sheet ----
   function renderConfirmSheet(confirm) {
     if (!confirm) return '';
-    const msg = confirm.kind === 'delete-record' ? 'この記録を削除します' : 'この劇場を削除します';
+    let msg, okLabel, okAction = 'do-delete';
+    if (confirm.kind === 'restore') {
+      const d = confirm.data;
+      msg = `バックアップ（${formatBackupDate(d.exportedAt)}、記録${d.records.length}件・劇場${d.theatres.length}件）で今のデータを置き換えます。今のデータ（記録${state.records.length}件）は消えます。`;
+      okLabel = '置き換えて復元'; okAction = 'do-restore';
+    } else {
+      msg = confirm.kind === 'delete-record' ? 'この記録を削除します' : 'この劇場を削除します';
+      okLabel = '削除';
+    }
     return `
       <div class="tl-sheet-backdrop" data-action="cancel-delete-backdrop">
         <div class="tl-sheet" data-stop-close>
           <p>${msg}</p>
           <div class="tl-sheet-actions">
-            <button type="button" class="tl-btn tl-btn--danger tl-btn--block" data-action="do-delete">削除</button>
+            <button type="button" class="tl-btn tl-btn--danger tl-btn--block" data-action="${okAction}">${okLabel}</button>
             <button type="button" class="tl-btn tl-btn--secondary tl-btn--block" data-action="cancel-delete">キャンセル</button>
           </div>
         </div>
@@ -636,23 +694,80 @@
       showToast(`${targets.length}件を書き出しました`);
     };
 
+    if (await shareOrDownload(csv, filename, 'text/csv')) markExported();
+  }
+
+  // Share sheet where available (iOS: "ファイルに保存"), otherwise a download.
+  // Resolves false if the user cancelled the share sheet.
+  async function shareOrDownload(content, filename, type) {
     try {
-      const file = new File([csv], filename, { type: 'text/csv' });
+      const file = new File([content], filename, { type });
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         await navigator.share({ files: [file], title: filename });
-        markExported();
-        return;
+        return true;
       }
     } catch (e) {
-      if (e && e.name === 'AbortError') return; // user cancelled the share sheet
+      if (e && e.name === 'AbortError') return false;
     }
-    const blob = new Blob([csv], { type: 'text/csv' });
+    const blob = new Blob([content], { type });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url; a.download = filename;
     document.body.appendChild(a); a.click(); a.remove();
-    URL.revokeObjectURL(url);
-    markExported();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    return true;
+  }
+
+  // ---- full backup / restore ----
+  async function exportBackup() {
+    const now = new Date();
+    const data = {
+      app: 'theatre-log', format: 1, exportedAt: now.toISOString(),
+      records: state.records, theatres: state.theatres,
+    };
+    const { y, m, d } = dateParts(todayISO());
+    const filename = `theatre-log-backup_${y}${String(m).padStart(2, '0')}${String(d).padStart(2, '0')}.json`;
+    if (await shareOrDownload(JSON.stringify(data, null, 2), filename, 'application/json')) {
+      writeLS('tl-last-backup', now.toISOString());
+      showToast('バックアップを保存しました');
+    }
+  }
+
+  function parseBackup(text) {
+    let d;
+    try { d = JSON.parse(text); } catch (e) { return null; }
+    if (!d || d.app !== 'theatre-log' || !Array.isArray(d.records) || !Array.isArray(d.theatres)) return null;
+    const okRecords = d.records.every(r => r && typeof r.id === 'string' && typeof r.title === 'string' && typeof r.date === 'string');
+    const okTheatres = d.theatres.every(t => t && typeof t.id === 'string' && typeof t.name === 'string');
+    if (!okRecords || !okTheatres) return null;
+    if (!d.exportedAt) d.exportedAt = new Date().toISOString();
+    return d;
+  }
+
+  async function onRestoreFileChosen(input) {
+    const file = input.files && input.files[0];
+    input.value = '';
+    if (!file) return;
+    const data = parseBackup(await file.text());
+    if (!data) { showToast('Theatre Log のバックアップファイルではありません'); return; }
+    state.ui.confirm = { kind: 'restore', data };
+    render();
+  }
+
+  async function doRestore(data) {
+    try {
+      await replaceAll(data.records, data.theatres);
+    } catch (e) {
+      console.error('Restore failed', e);
+      showToast('復元に失敗しました。今のデータはそのままです');
+      return;
+    }
+    state.records = data.records;
+    state.theatres = data.theatres;
+    // Restored data matches a backup file, so nothing is "unsaved" right now.
+    writeLS('tl-last-backup', data.exportedAt);
+    writeLS('tl-last-change', data.exportedAt);
+    showToast(`記録${data.records.length}件を復元しました`);
   }
 
   // ---- actions ----
@@ -706,6 +821,15 @@
       }
 
       case 'export-csv': exportCsv(); break;
+      case 'export-backup': exportBackup(); break;
+      case 'pick-restore': { const f = document.getElementById('restore-file'); if (f) f.click(); break; }
+      case 'do-restore': {
+        const data = state.ui.confirm && state.ui.confirm.data;
+        state.ui.confirm = null;
+        render();
+        if (data) doRestore(data);
+        break;
+      }
     }
   }
 
@@ -763,6 +887,7 @@
     root.addEventListener('change', (e) => {
       const el = e.target;
       const ov = state.ui.recordOverlay;
+      if (el.id === 'restore-file') { onRestoreFileChosen(el); return; }
       if (el.name === 'filter') { state.ui.listFilter = el.value; saveFilter(el.value); render(); }
       else if (el.name === 'genre') { ov.form.genre = el.value; }
       else if (el.dataset.action === 'update-status') { ov.form.status = el.value; }
@@ -774,7 +899,11 @@
     state.records = loaded.records;
     state.theatres = loaded.theatres;
     bindEvents();
+    document.addEventListener('tl-save-error', () => showToast('保存に失敗しました。念のためバックアップを保存してください'));
     render();
+
+    state.storagePersisted = await requestPersistentStorage();
+    if (state.ui.tab === 'export') render();
 
     // Register directly: by the time IndexedDB has loaded, window 'load' may already have fired.
     if ('serviceWorker' in navigator) {

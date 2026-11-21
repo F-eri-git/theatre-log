@@ -1,6 +1,6 @@
 // Service worker — after the first successful load, the app works offline
 // (all data lives in IndexedDB on-device).
-const CACHE_NAME = 'theatre-log-v3';
+const CACHE_NAME = 'theatre-log-v4';
 const ASSETS = [
   './',
   './index.html',

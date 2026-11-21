@@ -53,3 +53,9 @@ body { overscroll-behavior-y: none; }
 .tl-input[type="date"] { -webkit-appearance: none; appearance: none; display: block; min-width: 0; text-align: left; }
 .tl-input[type="date"]::-webkit-date-and-time-value { text-align: left; }
 .tl-field, .tl-field-pair > * { min-width: 0; }
+
+/* Backup */
+.tl-backup-reminder { display: flex; justify-content: space-between; align-items: center; gap: var(--space-3); width: 100%; padding: var(--space-3) var(--space-4); background: var(--gold-soft); color: var(--ink); border: 1px solid var(--gold); border-radius: var(--radius-md); font: 500 13px/18px var(--font-sans); text-align: left; cursor: pointer; }
+.tl-backup-reminder__cta { flex: none; color: var(--gold); font-weight: 700; }
+.tl-backup__status { margin: 0; font: 400 13px/18px var(--font-sans); color: var(--ink-muted); }
+.tl-backup__status.is-dirty { color: var(--gold); font-weight: 500; }

@@ -57,7 +57,44 @@ async function loadAll() {
   }
 }
 
-function saveRecord(record) { return put('records', record).catch(e => console.error('Failed to save record.', e)); }
-function deleteRecordDb(id) { return remove('records', id).catch(e => console.error('Failed to delete record.', e)); }
-function saveTheatre(theatre) { return put('theatres', theatre).catch(e => console.error('Failed to save theatre.', e)); }
-function deleteTheatreDb(id) { return remove('theatres', id).catch(e => console.error('Failed to delete theatre.', e)); }
+// ---- change tracking (drives the "back up" reminder) ----
+function markChanged() {
+  try { localStorage.setItem('tl-last-change', new Date().toISOString()); } catch (e) { /* ignore */ }
+}
+function reportSaveError(e) {
+  console.error('Failed to save.', e);
+  document.dispatchEvent(new CustomEvent('tl-save-error'));
+}
+function tracked(promise) {
+  return promise.then(v => { markChanged(); return v; }, reportSaveError);
+}
+
+function saveRecord(record) { return tracked(put('records', record)); }
+function deleteRecordDb(id) { return tracked(remove('records', id)); }
+function saveTheatre(theatre) { return tracked(put('theatres', theatre)); }
+function deleteTheatreDb(id) { return tracked(remove('theatres', id)); }
+
+// Replace everything in one transaction (used by backup restore): all-or-nothing.
+function replaceAll(records, theatres) {
+  return openDb().then(db => new Promise((resolve, reject) => {
+    const tx = db.transaction(['records', 'theatres'], 'readwrite');
+    const rs = tx.objectStore('records');
+    const ts = tx.objectStore('theatres');
+    rs.clear(); ts.clear();
+    records.forEach(r => rs.put(r));
+    theatres.forEach(t => ts.put(t));
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error);
+  }));
+}
+
+// Ask the browser not to evict our data under storage pressure.
+// Returns true if storage is (now) persistent.
+async function requestPersistentStorage() {
+  if (!navigator.storage || !navigator.storage.persist) return false;
+  try {
+    if (await navigator.storage.persisted()) return true;
+    return await navigator.storage.persist();
+  } catch (e) { return false; }
+}
